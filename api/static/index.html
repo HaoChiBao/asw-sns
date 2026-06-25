@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASW SMS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;550&family=Playfair+Display:wght@300&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --color-linen: #fafffa;
+      --color-obsidian-ink: #121613;
+      --color-sage: #516254;
+      --color-mist: #c8d2c8;
+      --color-voltage: #2bee4b;
+      --font-ui: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --radius-card: 14px;
+      --radius-button: 10px;
+      --shadow-cta: rgba(16, 94, 29, 0.45) 1px 8px 20px 0px, rgba(18, 146, 39, 0.25) 1px 8px 20px 0px;
+      --page-max: 1440px;
+      --spacing-20: 20px;
+      --spacing-50: 50px;
+      --spacing-60: 60px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--color-linen);
+      color: var(--color-obsidian-ink);
+      font-family: var(--font-ui);
+      font-weight: 350;
+      font-size: 16px;
+      line-height: 1.4;
+      min-height: 100vh;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-20) var(--spacing-50);
+      max-width: var(--page-max);
+      margin: 0 auto;
+    }
+
+    .wordmark {
+      font-size: 14px;
+      font-weight: 550;
+      letter-spacing: 0.01em;
+    }
+
+    .wordmark .accent { color: var(--color-voltage); }
+
+    .nav-status {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.11px;
+      color: var(--color-sage);
+    }
+
+    .hero {
+      max-width: var(--page-max);
+      margin: 0 auto;
+      padding: 0 var(--spacing-50) var(--spacing-60);
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-size: clamp(48px, 8vw, 96px);
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      max-width: 12ch;
+    }
+
+    .hero p {
+      margin-top: var(--spacing-20);
+      max-width: 48ch;
+      color: var(--color-sage);
+      font-size: 18px;
+    }
+
+    .tick {
+      width: 50px;
+      height: 2px;
+      background: var(--color-voltage);
+      margin: var(--spacing-20) 0;
+    }
+
+    .layout {
+      max-width: var(--page-max);
+      margin: 0 auto;
+      padding: 0 var(--spacing-50) 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-50);
+    }
+
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+      .nav, .hero, .layout { padding-left: var(--spacing-20); padding-right: var(--spacing-20); }
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.11px;
+      color: var(--color-sage);
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: var(--color-linen);
+      border-radius: var(--radius-card);
+      padding: var(--spacing-20);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      font-weight: 400;
+      margin-bottom: var(--spacing-20);
+    }
+
+    .stat-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--color-mist);
+      font-size: 14px;
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+
+    .stat-label { color: var(--color-sage); }
+
+    .phone-list { list-style: none; display: grid; gap: 12px; }
+
+    .phone-item {
+      padding: 14px;
+      border-radius: var(--radius-card);
+      background: var(--color-linen);
+    }
+
+    .phone-number {
+      font-size: 18px;
+      font-weight: 400;
+    }
+
+    .phone-meta {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.11px;
+      color: var(--color-sage);
+      margin-top: 4px;
+    }
+
+    .badge-on {
+      color: var(--color-obsidian-ink);
+      background: var(--color-voltage);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 550;
+    }
+
+    .form-group { margin-bottom: var(--spacing-20); }
+
+    label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.11px;
+      color: var(--color-sage);
+      margin-bottom: 8px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--color-mist);
+      border-radius: var(--radius-button);
+      padding: 12px 14px;
+      font: inherit;
+      background: var(--color-linen);
+      color: var(--color-obsidian-ink);
+    }
+
+    textarea { min-height: 100px; resize: vertical; }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid var(--color-voltage);
+      outline-offset: 1px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--color-voltage);
+      color: var(--color-obsidian-ink);
+      border: none;
+      border-radius: var(--radius-button);
+      padding: 16px 32px;
+      font-family: var(--font-ui);
+      font-size: 14px;
+      font-weight: 550;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: var(--shadow-cta);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      background: none;
+      border: none;
+      color: var(--color-obsidian-ink);
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .messages-panel { grid-column: 1 / -1; }
+
+    .messages-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .messages-table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.11px;
+      color: var(--color-sage);
+      padding: 0 12px 12px 0;
+      font-weight: 350;
+    }
+
+    .messages-table td {
+      padding: 14px 12px 14px 0;
+      border-top: 1px solid var(--color-mist);
+      vertical-align: top;
+    }
+
+    .message-body { max-width: 320px; word-break: break-word; }
+
+    .empty {
+      color: var(--color-sage);
+      font-size: 14px;
+      padding: var(--spacing-20) 0;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--color-obsidian-ink);
+      color: var(--color-linen);
+      padding: 14px 20px;
+      border-radius: var(--radius-button);
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      max-width: 360px;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #3d1515; }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="wordmark"><span>ASW</span><span class="accent">SMS</span></div>
+    <div class="nav-status" id="status">Loading…</div>
+  </header>
+
+  <section class="hero">
+    <div class="tick"></div>
+    <h1>Phone pool & messaging</h1>
+    <p>View your AWS End User Messaging pool, send outbound SMS, and read inbound messages stored in DynamoDB.</p>
+    <p style="margin-top:12px;font-size:14px;color:var(--color-sage)">Note: Your AWS account is in <strong>SMS sandbox</strong> — outbound send requires verified destination numbers or production access. Inbound SMS works normally.</p>
+  </section>
+
+  <main class="layout">
+    <section class="card">
+      <div class="section-label">Pool</div>
+      <h2>Phone pool</h2>
+      <div class="stat-grid" id="pool-stats">
+        <p class="empty">Loading pool…</p>
+      </div>
+      <div style="margin-top: 24px">
+        <div class="section-label">Numbers in pool</div>
+        <ul class="phone-list" id="phone-list"></ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-label">Outbound</div>
+      <h2>Send message</h2>
+      <form id="send-form">
+        <div class="form-group">
+          <label for="from">From (pool or number)</label>
+          <select id="from" name="from"></select>
+        </div>
+        <div class="form-group">
+          <label for="to">To (E.164, e.g. +16475551234)</label>
+          <input id="to" name="to" type="tel" placeholder="+16475551234" required />
+        </div>
+        <div class="form-group">
+          <label for="body">Message</label>
+          <textarea id="body" name="body" placeholder="Your message…" required maxlength="1600"></textarea>
+        </div>
+        <button class="btn-primary" type="submit" id="send-btn">Send SMS →</button>
+      </form>
+    </section>
+
+    <section class="card messages-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <div class="section-label">Inbound</div>
+          <h2>Received messages</h2>
+        </div>
+        <button class="btn-ghost" type="button" id="refresh-btn">Refresh</button>
+      </div>
+      <div id="messages-wrap">
+        <p class="empty">Loading messages…</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const poolStatsEl = document.getElementById('pool-stats');
+    const phoneListEl = document.getElementById('phone-list');
+    const fromSelect = document.getElementById('from');
+    const messagesWrap = document.getElementById('messages-wrap');
+    const toast = document.getElementById('toast');
+    let poolData = null;
+
+    function showToast(message, isError = false) {
+      toast.textContent = message;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => { toast.className = 'toast'; }, 4000);
+    }
+
+    function fmtDate(iso) {
+      try {
+        return new Date(iso).toLocaleString();
+      } catch {
+        return iso;
+      }
+    }
+
+    function renderPool(pool) {
+      poolData = pool;
+      poolStatsEl.innerHTML = `
+        <div class="stat-row"><span class="stat-label">Pool ID</span><span>${pool.poolId}</span></div>
+        <div class="stat-row"><span class="stat-label">Status</span><span>${pool.status}</span></div>
+        <div class="stat-row"><span class="stat-label">Message type</span><span>${pool.messageType}</span></div>
+        <div class="stat-row"><span class="stat-label">Two-way SMS</span><span>${pool.twoWayEnabled ? '<span class="badge-on">ON</span>' : 'Off'}</span></div>
+        <div class="stat-row"><span class="stat-label">SNS topic</span><span style="font-size:12px;word-break:break-all">${pool.twoWayChannelArn ?? '—'}</span></div>
+      `;
+
+      phoneListEl.innerHTML = pool.phoneNumbers.map((p) => `
+        <li class="phone-item">
+          <div class="phone-number">${p.phoneNumber}</div>
+          <div class="phone-meta">${p.numberType} · ${p.status} · ${p.isoCountryCode ?? ''} ${p.twoWayEnabled ? '· Two-way' : ''}</div>
+        </li>
+      `).join('');
+
+      fromSelect.innerHTML = `
+        ${pool.phoneNumbers.filter((p) => p.numberType !== 'SIMULATOR').map((p) => `<option value="${p.phoneNumber}">${p.phoneNumber} (${p.numberType})</option>`).join('')}
+      `;
+      if (fromSelect.options.length) fromSelect.selectedIndex = 0;
+    }
+
+    function renderMessages(messages) {
+      if (!messages.length) {
+        messagesWrap.innerHTML = '<p class="empty">No inbound messages yet. Text your pool number to receive one.</p>';
+        return;
+      }
+
+      messagesWrap.innerHTML = `
+        <table class="messages-table">
+          <thead>
+            <tr>
+              <th>Received</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${messages.map((m) => `
+              <tr>
+                <td>${fmtDate(m.receivedAt)}</td>
+                <td>${m.fromNumber}</td>
+                <td>${m.toNumber}</td>
+                <td class="message-body">${escapeHtml(m.messageBody)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function loadPool() {
+      const res = await fetch('/api/pool');
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to load pool');
+      return res.json();
+    }
+
+    async function loadMessages() {
+      const res = await fetch('/api/messages?limit=50');
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to load messages');
+      const data = await res.json();
+      return data.messages;
+    }
+
+    async function refreshAll() {
+      try {
+        const [health, pool, messages] = await Promise.all([
+          fetch('/api/health').then((r) => r.json()),
+          loadPool(),
+          loadMessages(),
+        ]);
+        statusEl.textContent = `${health.region} · Connected`;
+        renderPool(pool);
+        renderMessages(messages);
+      } catch (err) {
+        statusEl.textContent = 'Error';
+        showToast(err.message || 'Failed to load dashboard', true);
+      }
+    }
+
+    document.getElementById('send-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: document.getElementById('to').value,
+            body: document.getElementById('body').value,
+            from: document.getElementById('from').value || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Send failed');
+        showToast(`Sent · ID ${data.messageId ?? 'ok'}`);
+        document.getElementById('body').value = '';
+      } catch (err) {
+        showToast(err.message || 'Send failed', true);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+    refreshAll();
+    setInterval(refreshAll, 30000);
+  </script>
+</body>
+</html>

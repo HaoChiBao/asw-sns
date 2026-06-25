@@ -33,6 +33,9 @@ AWS End User Messaging SMS phone number
 
 ```
 .
+├── api/                    # Dashboard API + static UI
+│   ├── src/server.ts
+│   └── static/index.html
 ├── cdk/                    # AWS CDK infrastructure
 │   ├── bin/app.ts
 │   └── lib/inbound-sms-stack.ts
@@ -66,7 +69,17 @@ Copy environment defaults:
 cp .env.example .env
 ```
 
-Edit `.env` if you deploy to a region other than `us-east-1`.
+Edit `.env` if you deploy to a region other than `us-east-2`.
+
+## Dashboard
+
+View your phone pool, send outbound SMS, and read inbound messages:
+
+```bash
+npm run dashboard
+```
+
+Open **http://localhost:3000**. Requires AWS credentials (`aws login`) with access to End User Messaging and DynamoDB in **us-east-2**.
 
 ## Configure AWS credentials
 

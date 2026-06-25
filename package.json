@@ -1,0 +1,20 @@
+{
+  "name": "asw-sns",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AWS inbound SMS pipeline: End User Messaging → SNS → Lambda → DynamoDB",
+  "workspaces": [
+    "cdk",
+    "lambda"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "deploy": "npm run deploy --workspace=cdk",
+    "diff": "npm run diff --workspace=cdk",
+    "synth": "npm run synth --workspace=cdk",
+    "test:local": "npm run test:local --workspace=lambda --"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

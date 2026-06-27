@@ -14,7 +14,9 @@
     "diff": "npm run diff --workspace=cdk",
     "synth": "npm run synth --workspace=cdk",
     "test:local": "npm run test:local --workspace=lambda --",
-    "dashboard": "npm run dev --workspace=api"
+    "dashboard": "npm run dev --workspace=api",
+    "deploy:dashboard": "vercel --cwd api",
+    "deploy:dashboard:prod": "vercel --cwd api --prod"
   },
   "engines": {
     "node": ">=20"

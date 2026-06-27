@@ -1,0 +1,8 @@
+{
+  "InboundSmsStack": {
+    "InboundSmsHandlerArn": "arn:aws:lambda:us-east-2:058264161545:function:InboundSmsHandler",
+    "InboundSmsMessagesTableName": "InboundSmsMessages",
+    "ReaderApiUrl": "https://6dnuopydjj.execute-api.us-east-2.amazonaws.com",
+    "InboundSmsTopicArn": "arn:aws:sns:us-east-2:058264161545:inbound-sms"
+  }
+}

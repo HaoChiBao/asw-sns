@@ -1,124 +1,66 @@
 # Inbound SMS Pipeline
 
-AWS End User Messaging SMS → SNS → Lambda → DynamoDB
+AWS End User Messaging SMS → SNS → Lambda → DynamoDB, with a **read-only dashboard** that does not need AWS credentials.
 
-When someone texts your AWS SMS phone number, AWS publishes the inbound payload to an SNS topic. This project deploys that topic, a Lambda function (`InboundSmsHandler`), and a DynamoDB table (`InboundSmsMessages`) to parse and store each message.
-
-## Why AWS CDK?
-
-This project uses **AWS CDK (TypeScript)** instead of Terraform because:
-
-- The Lambda handler and infrastructure are both TypeScript — one language end to end.
-- CDK has first-class constructs for SNS → Lambda subscriptions, DynamoDB grants, and Lambda bundling.
-- Less boilerplate than Terraform for wiring IAM permissions and Lambda packaging.
-
-Terraform would work equally well if you prefer HCL or already standardize on it.
+When someone texts your AWS SMS phone number, AWS publishes the inbound payload to an SNS topic. A Lambda stores each message in DynamoDB. A separate read API (API Gateway + Lambda) exposes messages and phone numbers over HTTP. The local dashboard only calls that HTTP API.
 
 ## Architecture
 
 ```
-AWS End User Messaging SMS phone number
-        │
-        ▼
-   SNS topic (inbound-sms)
-        │
-        ▼
-   Lambda (InboundSmsHandler)
-        │
-        ▼
-   DynamoDB (InboundSmsMessages)
+Inbound SMS
+    │
+    ▼
+SNS topic (inbound-sms)
+    │
+    ▼
+Lambda (InboundSmsHandler) ──► DynamoDB (InboundSmsMessages)
+                                      ▲
+                                      │ read
+                                      │
+                               Lambda (InboundSmsReaderApi)
+                                      │
+                                      ▼
+                               API Gateway (HTTP)
+                                      │
+                                      ▼
+                               Dashboard (local or hosted)
+                               — no AWS credentials —
 ```
 
 ## Project structure
 
 ```
 .
-├── api/                    # Dashboard API + static UI
-│   ├── src/server.ts
+├── api/                    # Read-only dashboard (Express + static UI)
+│   ├── src/server.ts       # Proxies READER_API_URL
 │   └── static/index.html
 ├── cdk/                    # AWS CDK infrastructure
-│   ├── bin/app.ts
-│   └── lib/inbound-sms-stack.ts
-├── lambda/                 # Lambda source
-│   ├── src/
-│   │   ├── handler.ts
-│   │   ├── storage.ts
-│   │   └── types.ts
-│   └── scripts/invoke-local.ts
+├── lambda/
+│   ├── src/handler.ts      # Writes inbound SMS to DynamoDB
+│   └── src/reader-handler.ts  # Read API for dashboard
 ├── samples/
-│   └── sns-inbound-sms-event.json
-├── .env.example
-└── README.md
+└── .env.example
 ```
 
 ## Prerequisites
 
 - Node.js 20+
-- AWS CLI configured with credentials
+- AWS CLI + credentials (for **deploy only** — not needed to run the dashboard)
 - AWS CDK CLI (installed via `npm install` in this repo)
 
 ## Install
 
 ```bash
 npm install
-```
-
-Copy environment defaults:
-
-```bash
 cp .env.example .env
-```
-
-Edit `.env` if you deploy to a region other than `us-east-2`.
-
-## Dashboard
-
-View your phone pool, send outbound SMS, and read inbound messages:
-
-```bash
-npm run dashboard
-```
-
-Open **http://localhost:3000**. Requires AWS credentials (`aws login`) with access to End User Messaging and DynamoDB in **us-east-2**.
-
-## Configure AWS credentials
-
-Use one of these approaches:
-
-**AWS CLI profile (recommended)**
-
-```bash
-aws configure
-# or: export AWS_PROFILE=your-profile
-```
-
-**Environment variables**
-
-```bash
-export AWS_ACCESS_KEY_ID=...
-export AWS_SECRET_ACCESS_KEY=...
-export AWS_REGION=us-east-1
-```
-
-Verify:
-
-```bash
-aws sts get-caller-identity
 ```
 
 ## Deploy infrastructure
 
-Bootstrap CDK in your account/region (first time only):
+Bootstrap CDK once per account/region:
 
 ```bash
-npx cdk bootstrap aws://ACCOUNT_ID/REGION
-# example: npx cdk bootstrap aws://123456789012/us-east-1
-```
-
-Preview changes:
-
-```bash
-npm run diff
+npx cdk bootstrap aws://ACCOUNT_ID/us-east-2
 ```
 
 Deploy:
@@ -127,107 +69,73 @@ Deploy:
 npm run deploy
 ```
 
-After deployment, note the **`InboundSmsTopicArn`** output — you need it for two-way SMS configuration.
-
-To print outputs again:
+After deploy, copy the **`ReaderApiUrl`** output into `.env`:
 
 ```bash
-cd cdk && npx cdk deploy --outputs-file ../cdk-outputs.json
-cat cdk-outputs.json
+READER_API_URL=https://xxxx.execute-api.us-east-2.amazonaws.com
 ```
 
-## Connect SNS to your AWS SMS phone number
+Optional: protect the read API with a shared key (set in CDK context or `READER_API_KEY` env when deploying, then mirror it in dashboard `.env`).
 
-1. Open the [AWS End User Messaging SMS console](https://console.aws.amazon.com/sms-voice/home).
-2. Go to **Phone numbers** and select your SMS-capable number.
-3. Under **Two-way SMS**, choose **Edit**.
-4. Set **Destination type** to **Amazon SNS**.
-5. Select **Existing Amazon SNS topic** and paste the **`InboundSmsTopicArn`** from the deploy output.
-6. For **Two-way channel role**, choose **Use Amazon SNS topic policies** (the CDK stack already adds the required `sms-voice.amazonaws.com` publish permission).
-7. Save.
+Connect two-way SMS on your pool numbers to the **`InboundSmsTopicArn`** output — see [Set up two-way SMS](https://docs.aws.amazon.com/sms-voice/latest/userguide/two-way-sms-phone-number.html).
 
-Reference: [Set up two-way SMS](https://docs.aws.amazon.com/sms-voice/latest/userguide/two-way-sms-phone-number.html)
-
-## Test locally
-
-Dry run (default — parses the sample event and logs output, skips DynamoDB):
+## Dashboard (read-only)
 
 ```bash
-npm run test:local
+npm run dashboard
 ```
 
-Write to DynamoDB (requires deployed table and AWS credentials):
+Open **http://localhost:8080** (or your `PORT`). The dashboard:
+
+- Lists **pool phone numbers** (from the read API)
+- Shows **inbound messages** (newest first)
+- Does **not** call AWS — only `READER_API_URL`
+
+Set `DASHBOARD_PASSWORD` and `SESSION_SECRET` in `.env` to require sign-in.
+
+### Host on Vercel
+
+The dashboard deploys as a serverless Express app from the `api/` directory:
 
 ```bash
-npm run test:local -- --write
+cd api
+vercel link
+vercel env add READER_API_URL
+vercel env add DASHBOARD_PASSWORD   # optional
+vercel env add SESSION_SECRET       # optional if using auth
+vercel --prod
 ```
 
-The sample event is in `samples/sns-inbound-sms-event.json` and includes:
+Or from the repo root: `npm run deploy:dashboard:prod`
 
-- `originationNumber`: `+14255550182`
-- `destinationNumber`: `+12125550101`
-- `messageBody`: `"hello from test"`
-- `inboundMessageId`: `cae173d2-66b9-564c-8309-21f858e9fb84`
-
-## Test with a real SMS
-
-1. Deploy the stack and connect the SNS topic to your phone number (above).
-2. Send a text message to your AWS SMS number from your mobile phone.
-3. Within a few seconds, the Lambda should run and store the message.
-
-## Check CloudWatch logs
-
-```bash
-aws logs tail /aws/lambda/InboundSmsHandler --follow
-```
-
-Or in the console: **CloudWatch → Log groups → `/aws/lambda/InboundSmsHandler`**.
-
-Look for:
-
-- `Raw SNS event:` — full incoming event
-- `Processed inbound SMS:` — parsed fields
-
-## View stored messages in DynamoDB
-
-**CLI — scan recent items**
-
-```bash
-aws dynamodb scan \
-  --table-name InboundSmsMessages \
-  --max-items 10
-```
-
-**CLI — get by message id**
-
-```bash
-aws dynamodb get-item \
-  --table-name InboundSmsMessages \
-  --key '{"messageId":{"S":"YOUR_INBOUND_MESSAGE_ID"}}'
-```
-
-**Console:** DynamoDB → Tables → `InboundSmsMessages` → Explore table items.
-
-### Stored fields
-
-| Field | Description |
-| --- | --- |
-| `messageId` | Primary key (`inboundMessageId` or generated UUID) |
-| `fromNumber` | Sender (`originationNumber`) |
-| `toNumber` | Your AWS number (`destinationNumber`) |
-| `messageBody` | SMS text |
-| `receivedAt` | SNS timestamp |
-| `rawPayload` | Full parsed inbound JSON |
+Set **`READER_API_URL`** in Vercel project settings (required). No AWS credentials needed on Vercel.
 
 ## Environment variables
 
 | Variable | Used by | Description |
 | --- | --- | --- |
-| `AWS_REGION` | CDK / local SDK | AWS region (e.g. `us-east-1`) |
-| `DYNAMODB_TABLE_NAME` | Lambda | Table name (set automatically on deploy) |
-| `LOCAL_DRY_RUN` | Local script only | Skip DynamoDB writes when `true` |
+| `READER_API_URL` | Dashboard | HTTP API base URL from CDK `ReaderApiUrl` output |
+| `READER_API_KEY` | Dashboard | Optional — must match reader Lambda if set |
+| `DASHBOARD_PASSWORD` | Dashboard | Optional login password |
+| `SESSION_SECRET` | Dashboard | Cookie signing secret |
+| `PORT` | Dashboard | Local server port (default 3000) |
+| `AWS_REGION` | CDK deploy | Region (use `us-east-2` for this project) |
+| `PHONE_NUMBERS` | CDK deploy | Comma-separated numbers shown in read API |
 
-See `.env.example` for a template.
+## Test inbound SMS
+
+1. Deploy and wire two-way SMS to the SNS topic.
+2. Text one of your pool numbers from your phone.
+3. Refresh the dashboard — the message should appear within seconds.
+
+## Troubleshooting
+
+| Issue | Check |
+| --- | --- |
+| Dashboard shows “Not configured” | Set `READER_API_URL` in `.env` and restart |
+| Dashboard 503 | Reader API URL wrong, or `READER_API_KEY` mismatch |
+| SMS received but no message | CloudWatch logs for `InboundSmsHandler`; SNS topic wired correctly |
+| Empty phone list | Redeploy with `PHONE_NUMBERS` context or env |
 
 ## Destroy stack
 
@@ -235,17 +143,4 @@ See `.env.example` for a template.
 cd cdk && npm run destroy
 ```
 
-The DynamoDB table uses `RETAIN` removal policy — it is kept after stack deletion to avoid accidental data loss. Delete it manually in the console if needed.
-
-## Troubleshooting
-
-| Issue | Check |
-| --- | --- |
-| SMS received but Lambda not invoked | SNS topic ARN matches deploy output; two-way SMS is enabled on the number |
-| Lambda permission denied on SNS | Redeploy — CDK creates the subscription and invoke permission |
-| DynamoDB access denied | Lambda role has write grant from CDK (`table.grantWriteData`) |
-| Empty `fromNumber` / `messageBody` | Inspect `Raw SNS event` in CloudWatch; payload shape may differ |
-
-## License
-
-Private / use as needed for your app.
+DynamoDB uses `RETAIN` — delete the table manually if you want to remove stored messages.
